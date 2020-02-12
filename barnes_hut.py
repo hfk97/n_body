@@ -1,5 +1,7 @@
 import numpy as np
 
+global grav_const
+grav_const = 6.67408 * (10**-4)
 
 class OctNode:
     """Octtree node element, with id, center, size, mass, CenterOfMass, gravity, children"""
@@ -58,11 +60,11 @@ class OctNode:
         return "OctNodeObject"
 
     def __str__(self):
-        return f"OctNodeObject: id({self.id}), center({self.center}), size({self.size}), mass({self.mass})," \
+        return f"OctNodeObject: id({self.id}), center({self.center}), size({self.size}), mass({self.mass}), " \
             f"CenterOfMass({self.COM}), gravity({self.g}, children({self.children})"
 
 
-def TreeWalk(node, node0, thetamax=0.7, G=.5):
+def TreeWalk(node, node0, thetamax=0.7, G=grav_const):
     """
     Adds the contribution to the field at node0's point due to particles in node.
     Calling this with the topnode as node will walk the tree to calculate the total field at node0.
@@ -80,7 +82,7 @@ def TreeWalk(node, node0, thetamax=0.7, G=.5):
                 TreeWalk(c, node0, thetamax, G)
 
 
-def GravAccel(points, masses, thetamax=0.7, G=.5):
+def GravAccel(points, masses, thetamax=0.7, G=grav_const):
     center = (np.max(points, axis=0) + np.min(points, axis=0)) / 2  # center of particle cluster
     topsize = np.max(np.max(points, axis=0) - np.min(points, axis=0))  # size of total bounding box
     leaves = []  # want to keep track of leaf nodes
@@ -99,51 +101,52 @@ import matplotlib.pyplot as plt
 import mpl_toolkits.mplot3d.axes3d as p3
 import matplotlib.animation as animation
 
-n = 10
-x = np.random.normal(size=(n,3))*5
-m = np.repeat(1. / n, n)
+
+def Gen_RandPrtcls(n_particles, n_iterations):
+    global m
+    x = np.random.normal(size=(n_particles, 3))
+    m = np.repeat(np.random.normal()*10, n_particles)
+
+    # Computing trajectory
+    data = [x]
+    for iteration in range(n_iterations):
+        data.append(data[-1] + GravAccel(data[-1], m))
+    return data
+
+#data = Gen_RandPrtcls(n_particles=5, n_iterations=100)
+data = Gen_RandPrtcls(n_particles=50, n_iterations=10000)
+data = np.array(data)  # (n_iterations, n_particles, 3)
 
 
-# Computing trajectory
-data = [x]
-nbr_iterations = 300
-for iteration in range(nbr_iterations):
-    data.append(data[-1] + GravAccel(data[-1], m))
-
-
-
-def update_lines(num, dataLines, lines):
-    for line, data in zip(lines, dataLines):
-        # NOTE: there is no .set_data() for 3 dim data...
-        line.set_data(data[0:2, :num])
-        line.set_3d_properties(data[2, :num])
-    return lines
-
-# Attaching 3D axis to the figure
 fig = plt.figure()
 ax = p3.Axes3D(fig)
 
-# Fifty lines of random 3-D lines
-data = [Gen_RandLine(25, 3) for index in range(50)]
+# Plot the first position for all particles
+h = ax.plot(*data[0].T, marker='.', linestyle='None', markersize=6)[0]
 
-# Creating fifty line objects.
-# NOTE: Can't pass empty arrays into 3d version of plot()
-lines = [ax.plot(dat[0, 0:1], dat[1, 0:1], dat[2, 0:1])[0] for dat in data]
 
 # Setting the axes properties
-ax.set_xlim3d([0.0, 1.0])
+
+ax.set_xlim3d([min(data[0][:,0])*1.1, max(data[0][:,0])*1.1])
 ax.set_xlabel('X')
 
-ax.set_ylim3d([0.0, 1.0])
+ax.set_ylim3d([min(data[0][:,1])*1.1, max(data[0][:,1])*1.1])
 ax.set_ylabel('Y')
 
-ax.set_zlim3d([0.0, 1.0])
+ax.set_zlim3d([min(data[0][:,2])*1.1, max(data[0][:,1])*1.1])
 ax.set_zlabel('Z')
-
 ax.set_title('3D Test')
 
-# Creating the Animation object
-line_ani = animation.FuncAnimation(fig, update_lines, 25, fargs=(data, lines),
-                                   interval=50, blit=False)
+ax.set_axis_off()
+
+def update_particles(num):
+    # Plot the iterations up to num for all particles
+    h.set_xdata(data[num, :, 0].ravel())
+    h.set_ydata(data[num, :, 1].ravel())
+    h.set_3d_properties(data[num, :, 2].ravel())
+    return h
+
+prtcl_ani = animation.FuncAnimation(fig, update_particles, frames=10001,
+                                    interval=1)
 
 plt.show()
