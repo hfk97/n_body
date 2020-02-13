@@ -1,7 +1,10 @@
 import numpy as np
+import matplotlib.pyplot as plt
+import mpl_toolkits.mplot3d.axes3d as p3
+import matplotlib.animation as animation
 
 global grav_const
-grav_const = 6.67408 * (10**-4)
+grav_const = 0.5
 
 class OctNode:
     """Octtree node element, with id, center, size, mass, CenterOfMass, gravity, children"""
@@ -96,13 +99,8 @@ def GravAccel(points, masses, thetamax=0.7, G=grav_const):
     return accel
 
 
-
-import matplotlib.pyplot as plt
-import mpl_toolkits.mplot3d.axes3d as p3
-import matplotlib.animation as animation
-
-
 def Gen_RandPrtcls(n_particles, n_iterations):
+    #ToDo implement proper mass and maybe collision
     global m
     x = np.random.normal(size=(n_particles, 3))
     m = np.repeat(np.random.normal()*10, n_particles)
@@ -113,40 +111,58 @@ def Gen_RandPrtcls(n_particles, n_iterations):
         data.append(data[-1] + GravAccel(data[-1], m))
     return data
 
-#data = Gen_RandPrtcls(n_particles=5, n_iterations=100)
-data = Gen_RandPrtcls(n_particles=50, n_iterations=10000)
-data = np.array(data)  # (n_iterations, n_particles, 3)
+
+def main():
+    while True:
+        n_frames = 1000
+        n_prtcls = 80
+
+        # data = Gen_RandPrtcls(n_particles=5, n_iterations=100)
+        data = Gen_RandPrtcls(n_particles=n_prtcls, n_iterations=n_frames-1)
+        data = np.array(data)  # (n_iterations, n_particles, 3)
 
 
-fig = plt.figure()
-ax = p3.Axes3D(fig)
+        fig = plt.figure()
+        ax = p3.Axes3D(fig)
 
-# Plot the first position for all particles
-h = ax.plot(*data[0].T, marker='.', linestyle='None', markersize=6)[0]
+        # Plot the first position for all particles
+        h = ax.plot(*data[0].T, marker='.', linestyle='None', markersize=3, color="y")[0]
+
+        # Setting the axes properties
+
+        #ax.set_xlim3d([min(data[-1][:,0])*1.1, max(data[-1][:,0])*1.1])
+        ax.set_xlim3d([-125, 125])
+        ax.set_xlabel('X')
+
+        #ax.set_ylim3d([min(data[-1][:,1])*1.1, max(data[-1][:,1])*1.1])
+        ax.set_ylim3d([-125, 125])
+        ax.set_ylabel('Y')
+
+        #ax.set_zlim3d([min(data[-1][:,2])*1.1, max(data[-1][:,1])*1.1])
+        ax.set_zlim3d([-125, 125])
+        ax.set_zlabel('Z')
+        ax.set_title(f'Particle sim (n={n_prtcls})', color='white')
+
+        ax.set_axis_off()
+        ax.set_facecolor('black')
+
+        def update_particles(num):
+            # Plot the iterations up to num for all particles
+            h.set_xdata(data[num, :, 0].ravel())
+            h.set_ydata(data[num, :, 1].ravel())
+            h.set_3d_properties(data[num, :, 2].ravel())
+            return h
+
+        prtcl_ani = animation.FuncAnimation(fig, update_particles, frames=n_frames,
+                                            interval=33)
+
+        plt.show()
+
+        if 'q' in input("Enter q to quit: "):
+            break
+
+    return
 
 
-# Setting the axes properties
-
-ax.set_xlim3d([min(data[0][:,0])*1.1, max(data[0][:,0])*1.1])
-ax.set_xlabel('X')
-
-ax.set_ylim3d([min(data[0][:,1])*1.1, max(data[0][:,1])*1.1])
-ax.set_ylabel('Y')
-
-ax.set_zlim3d([min(data[0][:,2])*1.1, max(data[0][:,1])*1.1])
-ax.set_zlabel('Z')
-ax.set_title('3D Test')
-
-ax.set_axis_off()
-
-def update_particles(num):
-    # Plot the iterations up to num for all particles
-    h.set_xdata(data[num, :, 0].ravel())
-    h.set_ydata(data[num, :, 1].ravel())
-    h.set_3d_properties(data[num, :, 2].ravel())
-    return h
-
-prtcl_ani = animation.FuncAnimation(fig, update_particles, frames=10001,
-                                    interval=1)
-
-plt.show()
+if __name__ == '__main__':
+    main()
