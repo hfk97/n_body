@@ -3,7 +3,7 @@
 Recently I stumbled across the Barnes-Hut algorithm which simplifies solving the n-body problem, i.e. predicting the individual motions of a group of objects interacting gravitationally.
 Since I always wanted to write a program incorporating tree data structures, I decided to implement it.
 
-![n-body simulation](./media/example(n50).mov)
+![n-body simulation](./media/example_n50.gif)
 
 This repository consists of a single file that enables you to compute the individual motions of interacting bodies in 3D.
 
